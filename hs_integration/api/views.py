@@ -14,7 +14,7 @@ from rest_framework import status, views
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from config.settings import PERSONAL_ID
+from config.settings import HOST, PERSONAL_ID
 from hs_integration.apps import HsIntegrationConfig as hs
 
 from .serializers import (
@@ -264,7 +264,7 @@ class ListContactsAPIView(views.APIView):
         response_data = {"results": contacts}
         # Implement pagination in order to check next pages if there are any
         if response.paging:
-            next_page_url = "http://localhost:8000/contact/list/"
+            next_page_url = f"{HOST}/contact/list/"
             next_page_params = urlencode({"after": response.paging.next.after})
             response_data["paging"] = {
                 "next": {
