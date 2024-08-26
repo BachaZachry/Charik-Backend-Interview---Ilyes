@@ -114,7 +114,7 @@ class AssociateContactWDealAPIView(views.APIView):
                 value={"message": "Contact associated with deal successfully"},
             )
         },
-        description="Associate an existing contact with a deal in HubSpot",
+        description="Associate an existing contact created by the owner with a deal in HubSpot",
         summary="Associate Contact with a deal in HubSpot",
         tags=["Association"],
     )
@@ -124,11 +124,22 @@ class AssociateContactWDealAPIView(views.APIView):
         serializer.is_valid(raise_exception=True)
 
         try:
+            # Check if the contact is created by the same hubspot_owner
+            contact_id = serializer.validated_data["contact_id"]
+            contact = hs.contacts_api.get_by_id(
+                contact_id=contact_id, properties=["hubspot_owner_id"]
+            )
+            if contact.properties.get("hubspot_owner_id") != PERSONAL_ID:
+                return Response(
+                    {"error": "Contact is not created by the same owner."},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
             # We utilize v3 api which contains only batch associations
             batch_input_public_association = BatchInputPublicAssociation(
                 inputs=[
                     {
-                        "from": {"id": serializer.validated_data["contact_id"]},
+                        "from": {"id": contact_id},
                         "to": {"id": serializer.validated_data["deal_id"]},
                         "type": "contact_to_deal",
                     }
@@ -224,6 +235,7 @@ class ListContactsAPIView(views.APIView):
                 status_codes=["400"],
             ),
         ],
+        tags=["Contacts"],
     )
     def get(self, request):
         after = request.query_params.get("after", 0)
