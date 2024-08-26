@@ -240,12 +240,16 @@ class ListContactsAPIView(views.APIView):
     def get(self, request):
         after = request.query_params.get("after", 0)
         try:
+            # Get all contacts
             response = hs.contacts_api.get_page(
                 limit=10,
                 after=after,
                 associations=["deals"],
                 properties=["hubspot_owner_id", "email", "firstname", "lastname"],
             )
+
+            # Filter to get contacts owned by the user
+            # And get the correct format
             contacts = [
                 contact.to_dict()
                 for contact in response.results
@@ -258,6 +262,7 @@ class ListContactsAPIView(views.APIView):
             )
 
         response_data = {"results": contacts}
+        # Implement pagination in order to check next pages if there are any
         if response.paging:
             next_page_url = "http://localhost:8000/contact/list/"
             next_page_params = urlencode({"after": response.paging.next.after})
