@@ -3,8 +3,13 @@ from rest_framework import serializers
 
 class ContactSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    firstname = serializers.CharField()
-    lastname = serializers.CharField()
+    firstname = serializers.CharField(required=False)
+    lastname = serializers.CharField(required=False)
+    website = serializers.CharField(required=False)
+    company = serializers.CharField(required=False)
+    address = serializers.CharField(required=False)
+    city = serializers.CharField(required=False)
+    state = serializers.CharField(required=False)
 
 
 class DealSerializer(serializers.Serializer):
