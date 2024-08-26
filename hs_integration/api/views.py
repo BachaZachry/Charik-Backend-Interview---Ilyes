@@ -8,8 +8,10 @@ from hubspot.crm.contacts.exceptions import ApiException as ContactApiException
 from hubspot.crm.deals import SimplePublicObjectInputForCreate as DealObjectForCreate
 from hubspot.crm.deals.exceptions import ApiException as DealApiException
 from rest_framework import status, views
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
+from config.settings import PERSONAL_ID
 from hs_integration.apps import HsIntegrationConfig as hs
 
 from .serializers import (
@@ -39,6 +41,7 @@ class CreateContactAPIView(views.APIView):
 
         try:
             # Setup contact properties object
+            serializer.validated_data["hubspot_owner_id"] = PERSONAL_ID
             contact_object = ContactObjectForCreate(
                 properties=serializer.validated_data
             )
@@ -146,3 +149,30 @@ class AssociateContactWDealAPIView(views.APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class HubSpotContactsPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    page_query_param = "after"
+
+
+class ListContactsAPIView(views.APIView):
+    def get(self, request, *args, **kwargs):
+        paginator = HubSpotContactsPagination()
+        page = request.query_params.get(paginator.page_query_param, 1)
+        limit = paginator.get_page_size(request)
+
+        try:
+            response = hs.contacts_api.get_page(
+                limit=limit, after=(int(page) - 1) * limit
+            )
+            contacts = [contact.to_dict() for contact in response.results]
+            paginated_data = paginator.paginate_queryset(contacts, request)
+        except ContactApiException as e:
+            return Response(
+                {"error": f"Error retrieving contacts: {e.reason}"},
+                status=e.status,
+            )
+
+        return paginator.get_paginated_response(paginated_data)

@@ -1,6 +1,11 @@
 from django.urls import path
 
-from .views import AssociateContactWDealAPIView, CreateContactAPIView, CreateDealAPIView
+from .views import (
+    AssociateContactWDealAPIView,
+    CreateContactAPIView,
+    CreateDealAPIView,
+    ListContactsAPIView,
+)
 
 urlpatterns = [
     path(
@@ -14,4 +19,5 @@ urlpatterns = [
         AssociateContactWDealAPIView.as_view(),
         name="associate-contact-w-deal",
     ),
+    path("contact/list/", ListContactsAPIView.as_view(), name="list-contacts"),
 ]
