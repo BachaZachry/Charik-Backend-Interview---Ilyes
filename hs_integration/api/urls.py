@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import CreateContactAPIView
+from .views import CreateContactAPIView, CreateDealAPIView
 
 urlpatterns = [
     path(
@@ -8,4 +8,5 @@ urlpatterns = [
         CreateContactAPIView.as_view(),
         name="create-contact",
     ),
+    path("deal/", CreateDealAPIView.as_view(), name="create-deal"),
 ]

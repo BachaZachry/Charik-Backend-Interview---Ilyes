@@ -11,3 +11,4 @@ class HsIntegrationConfig(AppConfig):
     # Load API on app start
     api_client = HubSpot(access_token=HUBSPOT_API_KEY)
     contacts_api = api_client.crm.contacts.basic_api
+    deals_api = api_client.crm.deals.basic_api
