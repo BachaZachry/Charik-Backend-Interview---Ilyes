@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from hubspot.crm.contacts import SimplePublicObjectInputForCreate
 from hubspot.crm.contacts.exceptions import ApiException
 from rest_framework import status, views
@@ -9,6 +10,18 @@ from .serializers import ContactSerializer
 
 
 class CreateContactAPIView(views.APIView):
+    @extend_schema(
+        request=ContactSerializer,
+        responses={
+            201: OpenApiExample(
+                "Successful Response",
+                value={"message": "Contact created successfully", "id": "1234"},
+            )
+        },
+        description="Create a new contact in HubSpot",
+        summary="Create HubSpot Contact",
+        tags=["Contacts"],
+    )
     def post(self, request):
         # Validate input data
         serializer = ContactSerializer(data=request.data)
