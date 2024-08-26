@@ -1,4 +1,6 @@
 from drf_spectacular.utils import OpenApiExample, extend_schema
+from hubspot.crm.associations import BatchInputPublicAssociation
+from hubspot.crm.associations.exceptions import ApiException as AssociationException
 from hubspot.crm.contacts import (
     SimplePublicObjectInputForCreate as ContactObjectForCreate,
 )
@@ -10,7 +12,11 @@ from rest_framework.response import Response
 
 from hs_integration.apps import HsIntegrationConfig as hs
 
-from .serializers import ContactSerializer, DealSerializer
+from .serializers import (
+    AssociateContactWDealSerializer,
+    ContactSerializer,
+    DealSerializer,
+)
 
 
 class CreateContactAPIView(views.APIView):
@@ -90,4 +96,53 @@ class CreateDealAPIView(views.APIView):
         return Response(
             {"message": "Deal created successfully.", "id": response.id},
             status=status.HTTP_201_CREATED,
+        )
+
+
+class AssociateContactWDealAPIView(views.APIView):
+    @extend_schema(
+        request=AssociateContactWDealSerializer,
+        responses={
+            201: OpenApiExample(
+                "Successful Response",
+                value={"message": "Contact associated with deal successfully"},
+            )
+        },
+        description="Associate an existing contact with a deal in HubSpot",
+        summary="Associate Contact with a deal in HubSpot",
+        tags=["Association"],
+    )
+    def post(self, request):
+        # Validate input data
+        serializer = AssociateContactWDealSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            # We utilize v3 api which contains only batch associations
+            batch_input_public_association = BatchInputPublicAssociation(
+                inputs=[
+                    {
+                        "from": {"id": serializer.validated_data["contact_id"]},
+                        "to": {"id": serializer.validated_data["deal_id"]},
+                        "type": "contact_to_deal",
+                    }
+                ]
+            )
+            # Associate contact with a deal
+            hs.association_api.create(
+                from_object_type="contact",
+                to_object_type="deal",
+                batch_input_public_association=batch_input_public_association,
+            )
+        except AssociationException as e:
+            return Response(
+                {"error": f"Error associating contact with deal: {e.reason}"},
+                status=e.status,
+            )
+
+        return Response(
+            {
+                "message": "Contact associated with deal successfully",
+            },
+            status=status.HTTP_200_OK,
         )

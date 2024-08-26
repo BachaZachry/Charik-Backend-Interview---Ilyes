@@ -12,3 +12,8 @@ class DealSerializer(serializers.Serializer):
     dealstage = serializers.CharField()
     amount = serializers.DecimalField(max_digits=100, decimal_places=2)
     closedate = serializers.DateTimeField()
+
+
+class AssociateContactWDealSerializer(serializers.Serializer):
+    deal_id = serializers.CharField()
+    contact_id = serializers.CharField()
