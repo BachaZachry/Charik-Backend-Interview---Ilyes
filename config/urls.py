@@ -10,5 +10,5 @@ urlpatterns = [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
-    path("", include("hs_ingration.api.urls")),
+    path("", include("hs_integration.api.urls")),
 ]
