@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from hubspot.crm.associations import BatchInputPublicAssociation
 from hubspot.crm.associations.exceptions import ApiException as AssociationException
@@ -152,27 +154,40 @@ class AssociateContactWDealAPIView(views.APIView):
 
 
 class HubSpotContactsPagination(PageNumberPagination):
-    page_size = 20
+    page_size = 3
     page_size_query_param = "page_size"
-    page_query_param = "after"
 
 
 class ListContactsAPIView(views.APIView):
-    def get(self, request, *args, **kwargs):
-        paginator = HubSpotContactsPagination()
-        page = request.query_params.get(paginator.page_query_param, 1)
-        limit = paginator.get_page_size(request)
-
+    def get(self, request):
+        after = request.query_params.get("after", 0)
         try:
             response = hs.contacts_api.get_page(
-                limit=limit, after=(int(page) - 1) * limit
+                limit=10,
+                after=after,
+                associations=["deals"],
+                properties=["hubspot_owner_id", "email", "firstname", "lastname"],
             )
-            contacts = [contact.to_dict() for contact in response.results]
-            paginated_data = paginator.paginate_queryset(contacts, request)
+            contacts = [
+                contact.to_dict()
+                for contact in response.results
+                if contact.properties.get("hubspot_owner_id") == PERSONAL_ID
+            ]
         except ContactApiException as e:
             return Response(
                 {"error": f"Error retrieving contacts: {e.reason}"},
                 status=e.status,
             )
 
-        return paginator.get_paginated_response(paginated_data)
+        response_data = {"results": contacts}
+        if response.paging:
+            next_page_url = "http://localhost:8000/contact/list/"
+            next_page_params = urlencode({"after": response.paging.next.after})
+            response_data["paging"] = {
+                "next": {
+                    "link": f"{next_page_url}?{next_page_params}",
+                    "after": response.paging.next.after,
+                }
+            }
+
+        return Response(response_data, status=status.HTTP_200_OK)
