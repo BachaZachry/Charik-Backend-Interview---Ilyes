@@ -1,6 +1,7 @@
 from urllib.parse import urlencode
 
-from drf_spectacular.utils import OpenApiExample, extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from hubspot.crm.associations import BatchInputPublicAssociation
 from hubspot.crm.associations.exceptions import ApiException as AssociationException
 from hubspot.crm.contacts import (
@@ -159,6 +160,71 @@ class HubSpotContactsPagination(PageNumberPagination):
 
 
 class ListContactsAPIView(views.APIView):
+    @extend_schema(
+        summary="List Contacts",
+        description="Retrieve a paginated list of contacts from HubSpot along with any associations they have.",
+        parameters=[
+            OpenApiParameter(
+                name="after",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Pagination cursor to fetch results after a specific contact",
+                required=False,
+            ),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT,
+            400: OpenApiTypes.OBJECT,
+        },
+        examples=[
+            OpenApiExample(
+                "Successful Response",
+                value={
+                    "results": [
+                        {
+                            "id": "1",
+                            "created_at": "2024-08-26T15:32:48.871000Z",
+                            "archived": "false",
+                            "archived_at": "null",
+                            "properties_with_history": "null",
+                            "properties": {
+                                "email": "john@example.com",
+                                "firstname": "John",
+                                "hs_object_id": "1",
+                                "lastname": "Doe",
+                                "hubspot_owner_id": "id",
+                            },
+                            "updated_at": "2024-08-26T15:34:38.107000Z",
+                            "associations": {
+                                "deals": {
+                                    "paging": "null",
+                                    "results": [
+                                        {"id": "deal1", "type": "contact_to_deal"},
+                                        {"id": "deal2", "type": "contact_to_deal"},
+                                    ],
+                                },
+                            },
+                        }
+                    ],
+                    "paging": {
+                        "next": {
+                            "link": "http://localhost:8000/contact/list/?after=1000",
+                            "after": "1000",
+                        }
+                    },
+                },
+                response_only=True,
+            ),
+            OpenApiExample(
+                "Error Response",
+                value={
+                    "error": "Error retrieving contacts: API rate limit exceeded",
+                },
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+    )
     def get(self, request):
         after = request.query_params.get("after", 0)
         try:
